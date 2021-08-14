@@ -15,7 +15,7 @@ int main()
 		Error("No Process found");
 		return 1;
 	}
-
-	injectShellCode(pid);
+	// injectShellCode(pid);
+	injectDLL(pid);
 }
 

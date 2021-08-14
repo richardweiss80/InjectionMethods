@@ -14,7 +14,7 @@ void Info(const char sign, const char* description) {
 BOOL startProcess() {
 	STARTUPINFO si = { sizeof(si) };
 	PROCESS_INFORMATION pi;
-	WCHAR name[] = L"explorer";
+	WCHAR name[] = L"write";
 
 	BOOL success = ::CreateProcess(nullptr, name, nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
 
@@ -41,7 +41,7 @@ DWORD getProcessPID() {
 	DWORD pid = -1;
 
 	do {
-		if (wcscmp(L"explorer.exe", pe.szExeFile) == 0) {
+		if (wcscmp(L"wordpad.exe", pe.szExeFile) == 0) {
 			pid = pe.th32ProcessID;
 			break;
 		}
