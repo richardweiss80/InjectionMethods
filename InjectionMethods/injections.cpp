@@ -84,7 +84,7 @@ void injectShellCode(_In_ DWORD pid) {
                 ::CloseHandle(hThread);
             }
 
-            ::VirtualFreeEx(hProcess, ptrVirtAlloc, 0, MEM_RELEASE);
+            //::VirtualFreeEx(hProcess, ptrVirtAlloc, 0, MEM_RELEASE);
         }
         ::CloseHandle(hProcess);
     }
