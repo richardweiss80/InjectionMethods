@@ -1,17 +1,16 @@
 #include "pch.h"
 #include "injections.h"
+#include "helper.h"
 
 /* There is no refactoring done in the functions for a better unerstanding of the different injection methods*/
 
 void injectDLL(_In_ DWORD pid) {
-    DWORD dwDesiredAccess = PROCESS_CREATE_THREAD | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION; // often seen: PROCESS_ALL_ACCESS;
+    DWORD dwDesiredAccess = PROCESS_CREATE_THREAD | PROCESS_VM_WRITE | PROCESS_VM_OPERATION; // often seen: PROCESS_ALL_ACCESS;
 
     HANDLE hProcess;
     LPVOID ptrVirtAlloc = nullptr;
 
     static const UCHAR dllPath[] = "C:\\Users\\rwe\\Desktop\\Development\\InjectionMethods\\x64\\Debug\\InjectedDLL.dll";
-
-    printf("%i, %i\n", sizeof(dllPath), sizeof(*dllPath));
 
     if (hProcess = ::OpenProcess(dwDesiredAccess, false, pid)) {
         _tprintf(_TEXT("[+] Opened process %i successfully: %i\n"), pid, hProcess);
@@ -20,18 +19,27 @@ void injectDLL(_In_ DWORD pid) {
 
             DWORD tid;
 
-
             ::WriteProcessMemory(hProcess, ptrVirtAlloc, dllPath, sizeof(dllPath), NULL);
             _tprintf(_TEXT("[+] Wrote Path of DLL to Memory\n"));
 
-            if (HANDLE hThread = ::CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)::GetProcAddress(::GetModuleHandle(L"Kernel32.dll"), "LoadLibraryA"), ptrVirtAlloc, 0, &tid)) {
+            if (HANDLE hThread = ::CreateRemoteThread(hProcess,
+                                                      NULL,
+                                                      0,
+                                                      (LPTHREAD_START_ROUTINE)::GetProcAddress(::GetModuleHandle(L"Kernel32.dll"),
+                                                                                                                 "LoadLibraryA"),
+                                                      ptrVirtAlloc,
+                                                      0,
+                                                      &tid))
+            {
                 _tprintf(_TEXT("[+] Created Remote Threat - ID: %d - HandleID: %i"), tid, hThread);
                 ::CloseHandle(hThread);
             }
         }
         ::CloseHandle(hProcess);
     }
-
+    else {
+        Error("Failed to open process!");
+    }
 
 }
 
