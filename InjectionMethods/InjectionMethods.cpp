@@ -9,7 +9,7 @@ int main()
 {
 	startProcess();
 	Sleep(1000);
-	DWORD pid = getProcessPID();
+	DWORD pid = getProcessID();
 
 	if (pid == -1) {
 		Error("No Process found");

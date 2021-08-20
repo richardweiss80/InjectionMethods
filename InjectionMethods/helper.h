@@ -1,6 +1,6 @@
 #pragma once
 
 BOOL startProcess();
-DWORD getProcessPID();
+DWORD getProcessID();
 
 int Error(const char*);
