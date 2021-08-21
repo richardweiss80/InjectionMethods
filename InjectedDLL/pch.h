@@ -3,5 +3,7 @@
 
 #include <Windows.h>
 #include <tchar.h>
+#include <libloaderapi.h>
+#include <strsafe.h>
 
 #endif //PCH_H

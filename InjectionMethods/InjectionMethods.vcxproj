@@ -143,13 +143,15 @@
   <ItemGroup>
     <ClCompile Include="helper.cpp" />
     <ClCompile Include="InjectionMethods.cpp" />
-    <ClCompile Include="injections.cpp" />
+    <ClCompile Include="dll_injection_methods.cpp" />
     <ClCompile Include="pch.cpp" />
+    <ClCompile Include="pe_injection_methods.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="helper.h" />
-    <ClInclude Include="injections.h" />
+    <ClInclude Include="dll_injection_methods.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="pe_injection_methods.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
