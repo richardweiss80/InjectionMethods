@@ -10,7 +10,7 @@
 
 int main()
 {
-	// This is only used to start WordPad as process to be inhected
+	 //This is only used to start WordPad as process to be inhected
 	startProcess();
 	Sleep(1000);
 	DWORD pid = getProcessID();
@@ -20,6 +20,7 @@ int main()
 		return 1;
 	}
 	// injectShellCode(pid);
-	injectDLL(pid);
+	// injectDLL(pid);
+	injectPE(pid);
 }
 

