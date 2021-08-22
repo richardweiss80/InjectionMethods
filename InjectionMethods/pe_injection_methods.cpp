@@ -63,7 +63,7 @@ int injectPE(_In_ DWORD pid) {
         while (relocTable->VirtualAddress != 0) {
             if (relocTable->SizeOfBlock >= sizeof(IMAGE_BASE_RELOCATION)) {
                 DWORD relocDescriptorCount = (relocTable->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(WORD);
-                PRELOCATION_TABLE_ENTRY relocRelativeVA = (PRELOCATION_TABLE_ENTRY)(relocTable + 1);
+                PRELOCATION_TABLE_ENTRY relocRelativeVA = (PRELOCATION_TABLE_ENTRY)(relocTable + sizeof(IMAGE_BASE_RELOCATION)); // also seen as + 1, which means the same
                 for (short i = 0; i < relocDescriptorCount; i++)
                 {
                     if (relocRelativeVA[i].Offset)
@@ -83,6 +83,7 @@ int injectPE(_In_ DWORD pid) {
         if (WAIT_OBJECT_0 == ::WaitForSingleObject(hThread, INFINITE)) {
             _tprintf(_TEXT("[+] Thread exited normally.\n"));
         }
+
         ::CloseHandle(hThread);
     }
     ::VirtualFreeEx(hTargetProcess, ptrTargetMemory, 0, MEM_RELEASE);
