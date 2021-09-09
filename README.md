@@ -8,6 +8,7 @@ Implementation of different injection methods. Will be released in several steps
 Added:
 [+] ShellCode Injection
 [+] DLL Injection
+[+] PE Injection
 
 Also added is a little helper function which should identify the process, which should be used for the injection, and this function returns the ProcessID. This was added for a better overview, if you decide to visualize this detailled workflow with tools like procDOT.
 
